@@ -12,6 +12,7 @@ export default function CustomerDetail() {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [profileImageError, setProfileImageError] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -38,6 +39,11 @@ export default function CustomerDetail() {
     fetchCustomerData();
   }, [id]);
 
+  // Helper function to get initials from name
+  const getInitials = (name: string) => {
+    return name ? name.charAt(0).toUpperCase() : '?';
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -56,6 +62,9 @@ export default function CustomerDetail() {
     );
   }
 
+  const hasValidProfilePic = customer.profilePictureUrl && customer.profilePictureUrl.trim() !== '' && !profileImageError;
+  const nameInitial = getInitials(customer.name);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
@@ -73,12 +82,19 @@ export default function CustomerDetail() {
         <Card className="lg:col-span-1">
           <CardContent className="p-6">
             <div className="flex flex-col items-center text-center">
-              <div className="w-32 h-32 rounded-full overflow-hidden mb-4">
-                <img
-                  src={customer.profilePictureUrl || 'https://randomuser.me/api/portraits/men/1.jpg'}
-                  alt={customer.name}
-                  className="w-full h-full object-cover"
-                />
+              <div className="w-32 h-32 rounded-full overflow-hidden mb-4 flex items-center justify-center">
+                {hasValidProfilePic ? (
+                  <img
+                    src={customer.profilePictureUrl}
+                    alt={customer.name}
+                    className="w-full h-full object-cover"
+                    onError={() => setProfileImageError(true)}
+                  />
+                ) : (
+                  <div className="w-full h-full bg-primary-500 text-white flex items-center justify-center font-bold text-4xl">
+                    {nameInitial}
+                  </div>
+                )}
               </div>
 
               <h2 className="text-2xl font-bold mb-1">{customer.name}</h2>

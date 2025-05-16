@@ -13,31 +13,37 @@ export default function WorkerDetail() {
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [profileImageError, setProfileImageError] = useState(false);
 
   useEffect(() => {
     if (!id) return;
 
-    const fetchCustomerData = async () => {
+    const fetchWorkerData = async () => {
       try {
         setIsLoading(true);
 
-        const customerRes = await workersApi.getWorker(Number(id));
+        const workerRes = await workersApi.getWorker(Number(id));
         const requestsRes = await requestsApi.getRequests({
           workerId: Number(id),
           pageSize: 10,
         });
 
-        setWorker(customerRes.data);
+        setWorker(workerRes.data);
         setRequests(requestsRes.data.data || []);
       } catch (error) {
-        console.error('Failed to fetch customer data:', error);
+        console.error('Failed to fetch worker data:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchCustomerData();
+    fetchWorkerData();
   }, [id]);
+
+  // Helper function to get initials from name
+  const getInitials = (name: string) => {
+    return name ? name.charAt(0).toUpperCase() : '?';
+  };
 
   const filteredRequests = statusFilter
     ? requests.filter((r) => r.status === statusFilter)
@@ -61,6 +67,9 @@ export default function WorkerDetail() {
     );
   }
 
+  const hasValidProfilePic = worker.profilePictureUrl && worker.profilePictureUrl.trim() !== '' && !profileImageError;
+  const nameInitial = getInitials(worker.name);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
@@ -78,15 +87,19 @@ export default function WorkerDetail() {
         <Card className="lg:col-span-1">
           <CardContent className="p-6">
             <div className="flex flex-col items-center text-center">
-              <div className="w-32 h-32 rounded-full overflow-hidden mb-4">
-                <img
-                  src={worker.profilePictureUrl || "https://randomuser.me/api/portraits/men/1.jpg"}
-                  alt={worker.name}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.src = "https://randomuser.me/api/portraits/men/1.jpg";
-                  }}
-                />
+              <div className="w-32 h-32 rounded-full overflow-hidden mb-4 flex items-center justify-center">
+                {hasValidProfilePic ? (
+                  <img
+                    src={worker.profilePictureUrl}
+                    alt={worker.name}
+                    className="w-full h-full object-cover"
+                    onError={() => setProfileImageError(true)}
+                  />
+                ) : (
+                  <div className="w-full h-full bg-primary-500 text-white flex items-center justify-center font-bold text-4xl">
+                    {nameInitial}
+                  </div>
+                )}
               </div>
 
               <h2 className="text-2xl font-bold mb-1">{worker.name}</h2>
@@ -97,32 +110,40 @@ export default function WorkerDetail() {
                   <Star
                     key={i}
                     size={18}
-                    className={i < Math.round(worker.rating) ? "text-warning-500 fill-warning-500" : "text-gray-300"}
+                    className={i < Math.round(worker.rating || 0) ? "text-warning-500 fill-warning-500" : "text-gray-300"}
                   />
                 ))}
-                <span className="ml-1 text-gray-700 font-medium">{worker.rating.toFixed(1)}</span>
+                <span className="ml-1 text-gray-700 font-medium">
+                  {worker.rating !== null && worker.rating !== undefined 
+                    ? worker.rating.toFixed(1) 
+                    : "N/A"}
+                </span>
               </div>
 
               <div className="w-full space-y-3 text-left">
                 <div className="flex items-center gap-3">
                   <Mail size={18} className="text-gray-500" />
-                  <span>{worker.email}</span>
+                  <span>{worker.email || "No email available"}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <Phone size={18} className="text-gray-500" />
-                  <span>{worker.phoneNumber}</span>
+                  <span>{worker.phoneNumber || "No phone available"}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <MapPin size={18} className="text-gray-500" />
-                  <span>{worker.address}, {worker.city}</span>
+                  <span>{worker.address ? `${worker.address}, ${worker.city}` : worker.city || "No location"}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <Briefcase size={18} className="text-gray-500" />
-                  <span>Completed {worker.completedRequests} requests</span>
+                  <span>Completed {worker.completedRequests || 0} requests</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <DollarSign size={18} className="text-gray-500" />
-                  <span>Price range: ${worker.minPrice} - ${worker.maxPrice}</span>
+                  <span>
+                    {worker.minPrice !== undefined && worker.maxPrice !== undefined
+                      ? `Price range: $${worker.minPrice} - $${worker.maxPrice}`
+                      : "Price range not available"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -134,7 +155,7 @@ export default function WorkerDetail() {
             <CardTitle>About</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-700">{worker.description}</p>
+            <p className="text-gray-700">{worker.description || "No description available."}</p>
 
             <div className="mt-6">
               <h3 className="text-lg font-medium mb-4">Recent Requests</h3>

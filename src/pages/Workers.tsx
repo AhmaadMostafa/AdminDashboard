@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Search, Filter, Star } from 'lucide-react';
+import { Users, Search, Filter, Star, Lock, Unlock, RefreshCw } from 'lucide-react';
 import { createColumnHelper } from '@tanstack/react-table';
-import { Card, CardHeader, CardTitle } from '../components/ui/Card';
+import { Card } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import DataTable from '../components/ui/DataTable';
 import Badge from '../components/ui/Badge';
 import { Worker, workersApi, QueryParams } from '../utils/api';
+import { toast } from 'react-hot-toast';
 
 const columnHelper = createColumnHelper<Worker>();
 
@@ -18,6 +19,8 @@ export default function Workers() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
+  const [processingIds, setProcessingIds] = useState<number[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Pagination and filtering
   const [filters, setFilters] = useState<QueryParams>({
@@ -26,34 +29,37 @@ export default function Workers() {
   });
 
   useEffect(() => {
-    const fetchWorkers = async () => {
-      try {
-        setIsLoading(true);
-        const params: QueryParams = {
-          pageIndex,
-          pageSize,
-          ...filters,
-        };
-        
-        if (searchTerm) {
-          params.search = searchTerm;
-        }
-        
-        const response = await workersApi.getWorkers(params);
-        setWorkers(response.data.data);
-        setTotalCount(response.data.count);
-      } catch (error) {
-        console.error('Failed to fetch workers:', error);
-        // Use mock data for demo purposes
-        setWorkers(getMockWorkers());
-        setTotalCount(48);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
     fetchWorkers();
-  }, [pageIndex, pageSize, searchTerm, filters]);
+  }, [pageIndex, pageSize, searchTerm, filters, refreshKey]);
+
+  const fetchWorkers = async () => {
+    try {
+      setIsLoading(true);
+      const params: QueryParams = {
+        pageIndex,
+        pageSize,
+        ...filters,
+      };
+      
+      if (searchTerm) {
+        params.search = searchTerm;
+      }
+      
+      const response = await workersApi.getWorkers(params);
+      setWorkers(response.data.data);
+      setTotalCount(response.data.count);
+    } catch (error) {
+      console.error('Failed to fetch workers:', error);
+      toast.error('Failed to load workers data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Force a refresh
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1);
+  };
 
   const handlePaginationChange = (newPageIndex: number, newPageSize: number) => {
     setPageIndex(newPageIndex);
@@ -62,41 +68,83 @@ export default function Workers() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setPageIndex(0);
+    setPageIndex(1); // Reset to first page
   };
 
   const handleFilterChange = (key: keyof QueryParams, value: number) => {
     setFilters(prev => ({
       ...prev,
-      [key]: value,
+      [key]: value === 0 ? null : value,
     }));
-    setPageIndex(0);
+    setPageIndex(1); // Reset to first page
   };
 
   const resetFilters = () => {
     setFilters({
-      cityId: 0,
-      serviceId: 0,
+      cityId: null,
+      serviceId: null,
     });
     setSearchTerm('');
-    setPageIndex(0);
+    setPageIndex(1); // Reset to first page
+  };
+
+  const handleToggleUserLock = async (worker: Worker) => {
+    const workerId = worker.id;
+    try {
+      setProcessingIds(prev => [...prev, workerId]);
+      
+      await workersApi.toggleUserLock(worker);
+      
+      toast.success(`User ${worker.isBlocked ? 'unblocked' : 'blocked'} successfully`);
+      
+      // Force a refresh after a small delay
+      setTimeout(() => {
+        handleRefresh();
+      }, 300);
+    } catch (error) {
+      console.error(`Failed to ${worker.isBlocked ? 'unblock' : 'block'} user:`, error);
+      toast.error(`Failed to ${worker.isBlocked ? 'unblock' : 'block'} user. Please try again.`);
+    } finally {
+      setProcessingIds(prev => prev.filter(id => id !== workerId));
+    }
+  };
+
+  // Helper function to get initials from name
+  const getInitials = (name: string) => {
+    return name ? name.charAt(0).toUpperCase() : '?';
   };
 
   const columns = [
     columnHelper.accessor('profilePictureUrl', {
       header: '',
-      cell: (info) => (
-        <div className="w-10 h-10 rounded-full overflow-hidden">
-          <img 
-            src={info.getValue() || 'https://randomuser.me/api/portraits/men/1.jpg'} 
-            alt={`${info.row.original.name}`}
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              e.currentTarget.src = 'https://randomuser.me/api/portraits/men/1.jpg';
-            }}
-          />
-        </div>
-      ),
+      cell: (info) => {
+        const worker = info.row.original;
+        const profileUrl = info.getValue();
+        const hasValidProfilePic = profileUrl && profileUrl.trim() !== '';
+        const nameInitial = getInitials(worker.name);
+        
+        return (
+          <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center">
+            {hasValidProfilePic ? (
+              <img 
+                src={profileUrl} 
+                alt={`${worker.name}`}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  // On error, replace with initial
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.nextSibling.style.display = 'flex';
+                }}
+              />
+            ) : null}
+            <div 
+              className={`w-full h-full bg-primary-500 text-white flex items-center justify-center font-medium text-lg ${hasValidProfilePic ? 'hidden' : ''}`}
+            >
+              {nameInitial}
+            </div>
+          </div>
+        );
+      },
     }),
     columnHelper.accessor('name', {
       header: 'Name',
@@ -111,36 +159,83 @@ export default function Workers() {
     }),
     columnHelper.accessor('serviceName', {
       header: 'Service',
-      cell: (info) => (
-        <Badge variant="secondary">{info.getValue()}</Badge>
-      ),
+      cell: (info) => {
+        const serviceName = info.getValue();
+        return serviceName ? (
+          <Badge variant="secondary">{serviceName}</Badge>
+        ) : (
+          <span className="text-gray-400">No service</span>
+        );
+      },
     }),
     columnHelper.accessor('city', {
       header: 'City',
     }),
     columnHelper.accessor('rating', {
       header: 'Rating',
-      cell: (info) => (
-        <div className="flex items-center">
-          <Star className="w-4 h-4 text-warning-500 mr-1" />
-          <span>{info.getValue().toFixed(1)}</span>
-        </div>
-      ),
+      cell: (info) => {
+        const rating = info.getValue();
+        return rating === null ? (
+          <span className="text-gray-400">No rating</span>
+        ) : (
+          <div className="flex items-center">
+            <Star className="w-4 h-4 text-yellow-500 mr-1" />
+            <span>{rating.toFixed(1)}</span>
+          </div>
+        );
+      },
     }),
     columnHelper.accessor('completedRequests', {
       header: 'Completed',
+      cell: (info) => {
+        const completedRequests = info.getValue();
+        return completedRequests === null ? 0 : completedRequests;
+      },
     }),
-    columnHelper.accessor('minPrice', {
-      header: 'Price Range',
-      cell: (info) => (
-        <span>${info.getValue()} - ${info.row.original.maxPrice}</span>
-      ),
+    columnHelper.accessor('isBlocked', {
+      header: () => <div className="text-center w-full">Status</div>,
+      cell: (info) => {
+        const isBlocked = info.getValue();
+        const worker = info.row.original;
+        const isProcessing = processingIds.includes(worker.id);
+
+        return (
+          <div className="flex flex-col items-center justify-center w-full">
+            <div
+              className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                isBlocked ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+              }`}
+            >
+              {isBlocked ? 'Blocked' : 'Active'}
+            </div>
+
+            <Button
+              size="sm"
+              variant="ghost"
+              className={`p-0 mt-1 text-xs font-medium text-center ${
+                isBlocked ? 'text-green-600 hover:bg-green-50' : 'text-red-600 hover:bg-red-50'
+              }`}
+              onClick={() => handleToggleUserLock(worker)}
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              ) : (
+                <div className="flex items-center justify-center gap-0.5">
+                  {isBlocked ? <Unlock size={12} /> : <Lock size={12} />}
+                  <span>{isBlocked ? 'Unblock' : 'Block'}</span>
+                </div>
+              )}
+            </Button>
+          </div>
+        );
+      },
     }),
     columnHelper.accessor('id', {
       header: 'Actions',
       cell: (info) => (
         <Link to={`/workers/${info.getValue()}`}>
-          <Button size="sm">View</Button>
+         <Button size="sm">View</Button>
         </Link>
       ),
     }),
@@ -170,10 +265,21 @@ export default function Workers() {
           
           <Button
             variant="outline"
-            leftIcon={<Filter size={16} />}
+            className="flex items-center gap-1"
             onClick={() => setShowFilters(!showFilters)}
           >
+            <Filter size={16} />
             Filter
+          </Button>
+          
+          <Button
+            variant="outline"
+            className="flex items-center gap-1"
+            onClick={handleRefresh}
+            disabled={isLoading}
+          >
+            <RefreshCw size={16} className={isLoading ? "animate-spin" : ""} />
+            Refresh
           </Button>
         </div>
       </div>
@@ -187,8 +293,8 @@ export default function Workers() {
                 City
               </label>
               <select
-                className="form-select"
-                value={filters.cityId}
+                className="block w-full p-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                value={filters.cityId || 0}
                 onChange={(e) => handleFilterChange('cityId', Number(e.target.value))}
               >
                 <option value={0}>All Cities</option>
@@ -205,8 +311,8 @@ export default function Workers() {
                 Service
               </label>
               <select
-                className="form-select"
-                value={filters.serviceId}
+                className="block w-full p-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                value={filters.serviceId || 0}
                 onChange={(e) => handleFilterChange('serviceId', Number(e.target.value))}
               >
                 <option value={0}>All Services</option>
@@ -222,6 +328,7 @@ export default function Workers() {
               <Button
                 variant="secondary"
                 onClick={resetFilters}
+                className="w-full md:w-auto"
               >
                 Reset Filters
               </Button>
@@ -241,26 +348,10 @@ export default function Workers() {
       </div>
       
       {isLoading && (
-        <div className="flex justify-center">
+        <div className="flex justify-center p-8">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-500 border-t-transparent"></div>
         </div>
       )}
     </div>
   );
-}
-
-// Mock data generator function for demo purposes
-function getMockWorkers(): Worker[] {
-  return [
-    { id: 1, name: "John Smith", email: "john@example.com", city: "New York", phoneNumber: "555-123-4567", profilePictureUrl: "https://randomuser.me/api/portraits/men/1.jpg", age: 35, address: "123 Main St", serviceName: "Plumbing", rating: 4.8, description: "Professional plumber with over 10 years of experience", minPrice: 50, maxPrice: 150, completedRequests: 48 },
-    { id: 2, name: "Emily Johnson", email: "emily@example.com", city: "Chicago", phoneNumber: "555-234-5678", profilePictureUrl: "https://randomuser.me/api/portraits/women/2.jpg", age: 29, address: "456 Oak St", serviceName: "Electrical", rating: 4.9, description: "Licensed electrician specializing in residential properties", minPrice: 60, maxPrice: 180, completedRequests: 36 },
-    { id: 3, name: "Michael Chen", email: "michael@example.com", city: "Los Angeles", phoneNumber: "555-345-6789", profilePictureUrl: "https://randomuser.me/api/portraits/men/3.jpg", age: 42, address: "789 Pine St", serviceName: "Carpentry", rating: 4.7, description: "Skilled carpenter for all your woodworking needs", minPrice: 55, maxPrice: 165, completedRequests: 52 },
-    { id: 4, name: "Sarah Wilson", email: "sarah@example.com", city: "Boston", phoneNumber: "555-456-7890", profilePictureUrl: "https://randomuser.me/api/portraits/women/4.jpg", age: 31, address: "101 Cedar St", serviceName: "Painting", rating: 4.6, description: "Interior and exterior painting specialist", minPrice: 45, maxPrice: 135, completedRequests: 29 },
-    { id: 5, name: "David Rodriguez", email: "david@example.com", city: "Houston", phoneNumber: "555-567-8901", profilePictureUrl: "https://randomuser.me/api/portraits/men/5.jpg", age: 38, address: "202 Elm St", serviceName: "Lawn Care", rating: 4.5, description: "Complete lawn maintenance and landscaping", minPrice: 40, maxPrice: 120, completedRequests: 63 },
-    { id: 6, name: "Jennifer Lee", email: "jennifer@example.com", city: "Seattle", phoneNumber: "555-678-9012", profilePictureUrl: "https://randomuser.me/api/portraits/women/6.jpg", age: 33, address: "303 Maple St", serviceName: "Cleaning", rating: 4.7, description: "Thorough residential cleaning services", minPrice: 35, maxPrice: 95, completedRequests: 42 },
-    { id: 7, name: "Robert Garcia", email: "robert@example.com", city: "Phoenix", phoneNumber: "555-789-0123", profilePictureUrl: "https://randomuser.me/api/portraits/men/7.jpg", age: 40, address: "404 Birch St", serviceName: "HVAC", rating: 4.8, description: "Heating and cooling system specialist", minPrice: 70, maxPrice: 200, completedRequests: 38 },
-    { id: 8, name: "Lisa Wang", email: "lisa@example.com", city: "San Francisco", phoneNumber: "555-890-1234", profilePictureUrl: "https://randomuser.me/api/portraits/women/8.jpg", age: 36, address: "505 Walnut St", serviceName: "Plumbing", rating: 4.6, description: "Specializing in bathroom and kitchen plumbing", minPrice: 55, maxPrice: 160, completedRequests: 27 },
-    { id: 9, name: "Kevin Miller", email: "kevin@example.com", city: "Miami", phoneNumber: "555-901-2345", profilePictureUrl: "https://randomuser.me/api/portraits/men/9.jpg", age: 45, address: "606 Pine St", serviceName: "Electrical", rating: 4.9, description: "Master electrician with commercial and residential experience", minPrice: 65, maxPrice: 190, completedRequests: 56 },
-    { id: 10, name: "Amanda Taylor", email: "amanda@example.com", city: "Denver", phoneNumber: "555-012-3456", profilePictureUrl: "https://randomuser.me/api/portraits/women/10.jpg", age: 34, address: "707 Oak St", serviceName: "Carpentry", rating: 4.7, description: "Custom furniture and cabinetry specialist", minPrice: 60, maxPrice: 170, completedRequests: 31 }
-  ];
 }

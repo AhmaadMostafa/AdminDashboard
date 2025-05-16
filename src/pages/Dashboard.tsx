@@ -245,33 +245,3 @@ const StatusBadge = ({ status }: { status: string }) => {
   return <Badge variant={getVariant() as any}>{status}</Badge>;
 };
 
-// Mock data generator functions for demo purposes
-function getMockWorkers(): Worker[] {
-  return [
-    { id: 1, name: "John Smith", email: "john@example.com", city: "New York", phoneNumber: "555-123-4567", profilePictureUrl: "https://randomuser.me/api/portraits/men/1.jpg", age: 35, address: "123 Main St", serviceName: "Plumbing", rating: 4.8, description: "Professional plumber with over 10 years of experience", minPrice: 50, maxPrice: 150, completedRequests: 48 },
-    { id: 2, name: "Emily Johnson", email: "emily@example.com", city: "Chicago", phoneNumber: "555-234-5678", profilePictureUrl: "https://randomuser.me/api/portraits/women/2.jpg", age: 29, address: "456 Oak St", serviceName: "Electrical", rating: 4.9, description: "Licensed electrician specializing in residential properties", minPrice: 60, maxPrice: 180, completedRequests: 36 },
-    { id: 3, name: "Michael Chen", email: "michael@example.com", city: "Los Angeles", phoneNumber: "555-345-6789", profilePictureUrl: "https://randomuser.me/api/portraits/men/3.jpg", age: 42, address: "789 Pine St", serviceName: "Carpentry", rating: 4.7, description: "Skilled carpenter for all your woodworking needs", minPrice: 55, maxPrice: 165, completedRequests: 52 },
-    { id: 4, name: "Sarah Wilson", email: "sarah@example.com", city: "Boston", phoneNumber: "555-456-7890", profilePictureUrl: "https://randomuser.me/api/portraits/women/4.jpg", age: 31, address: "101 Cedar St", serviceName: "Painting", rating: 4.6, description: "Interior and exterior painting specialist", minPrice: 45, maxPrice: 135, completedRequests: 29 },
-    { id: 5, name: "David Rodriguez", email: "david@example.com", city: "Houston", phoneNumber: "555-567-8901", profilePictureUrl: "https://randomuser.me/api/portraits/men/5.jpg", age: 38, address: "202 Elm St", serviceName: "Lawn Care", rating: 4.5, description: "Complete lawn maintenance and landscaping", minPrice: 40, maxPrice: 120, completedRequests: 63 }
-  ];
-}
-
-function getMockCustomers(): Customer[] {
-  return [
-    { id: 1, name: "Alice Brown", email: "alice@example.com", phoneNumber: "555-987-6543", profilePictureUrl: "https://randomuser.me/api/portraits/women/6.jpg", address: "303 Maple St", age: 45, city: "Denver", requestsCount: 7 },
-    { id: 2, name: "Robert Lee", email: "robert@example.com", phoneNumber: "555-876-5432", profilePictureUrl: "https://randomuser.me/api/portraits/men/7.jpg", address: "404 Birch St", age: 33, city: "Seattle", requestsCount: 4 },
-    { id: 3, name: "Maria Garcia", email: "maria@example.com", phoneNumber: "555-765-4321", profilePictureUrl: "https://randomuser.me/api/portraits/women/8.jpg", address: "505 Spruce St", age: 29, city: "Miami", requestsCount: 9 },
-    { id: 4, name: "James Taylor", email: "james@example.com", phoneNumber: "555-654-3210", profilePictureUrl: "https://randomuser.me/api/portraits/men/9.jpg", address: "606 Poplar St", age: 51, city: "Dallas", requestsCount: 3 },
-    { id: 5, name: "Jennifer Kim", email: "jennifer@example.com", phoneNumber: "555-543-2109", profilePictureUrl: "https://randomuser.me/api/portraits/women/10.jpg", address: "707 Walnut St", age: 27, city: "Atlanta", requestsCount: 6 }
-  ];
-}
-
-function getMockRequests(): ServiceRequest[] {
-  return [
-    { requestId: 1, workerName: "John Smith", customerName: "Alice Brown", customerAddress: "303 Maple St, Denver", serviceName: "Plumbing", requestDate: "2025-05-04T14:30:00.000Z", comment: "Leaking faucet needs repair", status: "Completed", customerSuggestedPrice: 75, workerSuggestedPrice: 85, finalAgreedPrice: 80, negotiationStatus: "Agreed" },
-    { requestId: 2, workerName: "Emily Johnson", customerName: "Robert Lee", customerAddress: "404 Birch St, Seattle", serviceName: "Electrical", requestDate: "2025-05-05T10:15:00.000Z", comment: "Need to install new light fixtures", status: "In Progress", customerSuggestedPrice: 120, workerSuggestedPrice: 150, finalAgreedPrice: 135, negotiationStatus: "Agreed" },
-    { requestId: 3, workerName: "Michael Chen", customerName: "Maria Garcia", customerAddress: "505 Spruce St, Miami", serviceName: "Carpentry", requestDate: "2025-05-05T16:45:00.000Z", comment: "Custom bookshelf installation", status: "Pending", customerSuggestedPrice: 200, workerSuggestedPrice: 0, finalAgreedPrice: 0, negotiationStatus: "Pending" },
-    { requestId: 4, workerName: "Sarah Wilson", customerName: "James Taylor", customerAddress: "606 Poplar St, Dallas", serviceName: "Painting", requestDate: "2025-05-06T09:00:00.000Z", comment: "Paint living room and hallway", status: "Pending", customerSuggestedPrice: 300, workerSuggestedPrice: 350, finalAgreedPrice: 0, negotiationStatus: "Negotiating" },
-    { requestId: 5, workerName: "David Rodriguez", customerName: "Jennifer Kim", customerAddress: "707 Walnut St, Atlanta", serviceName: "Lawn Care", requestDate: "2025-05-03T11:30:00.000Z", comment: "Weekly lawn maintenance needed", status: "Completed", customerSuggestedPrice: 50, workerSuggestedPrice: 60, finalAgreedPrice: 55, negotiationStatus: "Agreed" }
-  ];
-}
