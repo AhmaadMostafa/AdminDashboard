@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { useAuth } from './auth';
 
-// Base URL for API requests - Changed to HTTP for development
+// Base URL for API requests
 const API_URL = 'http://localhost:7118/api';
 
 // Create an axios instance
@@ -9,6 +10,15 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+});
+
+// Add auth token to requests
+api.interceptors.request.use((config) => {
+  const token = useAuth.getState().token;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 // Add response interceptor for debugging
@@ -20,7 +30,24 @@ api.interceptors.response.use(
   }
 );
 
-// Interface definitions based on API responses
+// Interface definitions
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+export interface Category {
+  id: number;
+  name: string;
+  pictureUrl?: string;
+}
+
+export interface Service {
+  id: number;
+  name: string;
+  categoryId: number;
+}
+
 export interface PaginatedResponse<T> {
   pageIndex: number;
   pageSize: number;
@@ -77,7 +104,6 @@ export interface ServiceRequest {
   negotiationStatus: string;
 }
 
-// Common query parameters
 export interface QueryParams {
   pageIndex?: number;
   pageSize?: number;
@@ -90,7 +116,30 @@ export interface QueryParams {
   customerId?: number;
 }
 
-// API functions for workers
+// Auth API
+export const authApi = {
+  login: (credentials: LoginCredentials) =>
+    api.post('/Account/login', credentials),
+};
+
+// Categories API
+export const categoriesApi = {
+  create: (data: { name: string; pictureUrl?: string }) =>
+    api.post('/Admin/categories', data),
+  
+  delete: (id: number) =>
+    api.delete(`/Admin/categories/${id}`),
+};
+
+// Services API
+export const servicesApi = {
+  create: (data: { name: string; categoryId: number }) =>
+    api.post('/Admin/services', data),
+  
+  delete: (id: number) =>
+    api.delete(`/Admin/services/${id}`),
+};
+
 export const workersApi = {
   getWorkers: (params: QueryParams = {}) => 
     api.get<PaginatedResponse<Worker>>('/Admin/workers', { params }),
@@ -123,7 +172,6 @@ export const workersApi = {
   },
 };
 
-// API functions for customers
 export const customersApi = {
   getCustomers: (params: QueryParams = {}) => 
     api.get<PaginatedResponse<Customer>>('/Admin/Customers', { params }),
@@ -158,7 +206,6 @@ export const customersApi = {
   },
 };
 
-// API functions for service requests
 export const requestsApi = {
   getRequests: (params: QueryParams = {}) =>
     api.get<PaginatedResponse<ServiceRequest>>('/Admin/requests', { params }),
