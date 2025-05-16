@@ -7,6 +7,104 @@ import BarChart from '../components/charts/BarChart';
 import { Worker, Customer, ServiceRequest, workersApi, customersApi, requestsApi } from '../utils/api';
 import Badge from '../components/ui/Badge';
 
+// Mock data functions
+const getMockWorkers = (): Worker[] => [
+  {
+    id: 1,
+    name: "John Smith",
+    email: "john@example.com",
+    city: "New York",
+    phoneNumber: "123-456-7890",
+    profilePictureUrl: "https://example.com/profile.jpg",
+    age: 28,
+    address: "123 Main St",
+    serviceName: "Plumbing",
+    rating: 4.5,
+    description: "Professional plumber with 5 years of experience",
+    minPrice: 50,
+    maxPrice: 200,
+    completedRequests: 150,
+    isLocked: false,
+    isBlocked: false
+  },
+  {
+    id: 2,
+    name: "Sarah Johnson",
+    email: "sarah@example.com",
+    city: "Los Angeles",
+    phoneNumber: "987-654-3210",
+    profilePictureUrl: "https://example.com/profile2.jpg",
+    age: 32,
+    address: "456 Oak Ave",
+    serviceName: "Electrical",
+    rating: 4.8,
+    description: "Licensed electrician specializing in residential work",
+    minPrice: 75,
+    maxPrice: 250,
+    completedRequests: 200,
+    isLocked: false,
+    isBlocked: false
+  }
+];
+
+const getMockCustomers = (): Customer[] => [
+  {
+    id: 1,
+    name: "Alice Brown",
+    email: "alice@example.com",
+    phoneNumber: "555-123-4567",
+    profilePictureUrl: "https://example.com/customer1.jpg",
+    address: "789 Pine St",
+    age: 35,
+    city: "Chicago",
+    requestsCount: 10,
+    isBlocked: false
+  },
+  {
+    id: 2,
+    name: "Bob Wilson",
+    email: "bob@example.com",
+    phoneNumber: "555-987-6543",
+    profilePictureUrl: "https://example.com/customer2.jpg",
+    address: "321 Elm St",
+    age: 42,
+    city: "Houston",
+    requestsCount: 5,
+    isBlocked: false
+  }
+];
+
+const getMockRequests = (): ServiceRequest[] => [
+  {
+    requestId: 1,
+    workerName: "John Smith",
+    customerName: "Alice Brown",
+    customerAddress: "789 Pine St, Chicago",
+    serviceName: "Plumbing",
+    requestDate: "2024-01-15T10:00:00",
+    comment: "Leaking faucet needs repair",
+    status: "Completed",
+    customerSuggestedPrice: 75,
+    workerSuggestedPrice: 100,
+    finalAgreedPrice: 90,
+    negotiationStatus: "Agreed"
+  },
+  {
+    requestId: 2,
+    workerName: "Sarah Johnson",
+    customerName: "Bob Wilson",
+    customerAddress: "321 Elm St, Houston",
+    serviceName: "Electrical",
+    requestDate: "2024-01-16T14:30:00",
+    comment: "Install new ceiling fan",
+    status: "Pending",
+    customerSuggestedPrice: 150,
+    workerSuggestedPrice: 200,
+    finalAgreedPrice: 0,
+    negotiationStatus: "Negotiating"
+  }
+];
+
 export default function Dashboard() {
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -244,4 +342,3 @@ const StatusBadge = ({ status }: { status: string }) => {
   
   return <Badge variant={getVariant() as any}>{status}</Badge>;
 };
-

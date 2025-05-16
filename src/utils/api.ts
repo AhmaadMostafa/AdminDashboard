@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Base URL for API requests
-const API_URL = 'https://localhost:7118/api';
+// Base URL for API requests - Changed to HTTP for development
+const API_URL = 'http://localhost:7118/api';
 
 // Create an axios instance
 const api = axios.create({
@@ -46,12 +46,11 @@ export interface Worker {
   completedRequests: number;
   isLocked: boolean;
   isBlocked: boolean;
-
 }
 
 export interface Customer {
   id: number;
-  userId?: number; // Optional field in case userId differs from id
+  userId?: number;
   name: string;
   email: string;
   phoneNumber: string;
@@ -99,7 +98,6 @@ export const workersApi = {
   getWorker: (id: number) => 
     api.get<Worker>(`/Admin/workers/${id}`),
     
-  // Block/unblock user functions with proper error handling
   blockUser: (userId: number) => {
     console.log(`Calling block-user API for userId: ${userId}`);
     return api.post(`/Admin/block-user/${userId}`);
@@ -110,13 +108,10 @@ export const workersApi = {
     return api.post(`/Admin/unblock-user/${userId}`);
   },
     
-  // Updated to use isBlocked instead of isLocked
   toggleUserLock: async (worker: Worker) => {
-    // Determine which ID to use - prefer userId if available, otherwise fall back to id
     const idToUse = worker.userId !== undefined ? worker.userId : worker.id;
         
     try {
-      // Use isBlocked instead of isLocked to determine endpoint
       const endpoint = worker.isBlocked ? 'unblock-user' : 'block-user';
       const response = await api.post(`/Admin/${endpoint}/${idToUse}`);
       console.log(`API Response:`, response);
@@ -127,6 +122,7 @@ export const workersApi = {
     }
   },
 };
+
 // API functions for customers
 export const customersApi = {
   getCustomers: (params: QueryParams = {}) => 
@@ -135,7 +131,6 @@ export const customersApi = {
   getCustomer: (id: number) => 
     api.get<Customer>(`/Admin/Customers/${id}`),
   
-  // Block/unblock customer functions with proper error handling
   blockUser: (userId: number) => {
     console.log(`Calling block-user API for customer ID: ${userId}`);
     return api.post(`/Admin/block-user/${userId}`);
@@ -146,9 +141,7 @@ export const customersApi = {
     return api.post(`/Admin/unblock-user/${userId}`);
   },
   
-  // Helper function to toggle user lock status
   toggleUserLock: async (customer: Customer) => {
-    // Determine which ID to use
     const idToUse = customer.userId !== undefined ? customer.userId : customer.id;
     
     console.log(`Toggling block status for customer (ID: ${customer.id}), current status: ${customer.isBlocked ? 'Blocked' : 'Active'}`);
@@ -164,6 +157,7 @@ export const customersApi = {
     }
   },
 };
+
 // API functions for service requests
 export const requestsApi = {
   getRequests: (params: QueryParams = {}) =>
